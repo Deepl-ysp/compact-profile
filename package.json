@@ -1,0 +1,31 @@
+{
+  "name": "compact-profile",
+  "version": "1.0.0",
+  "description": "A compact configuration language that compiles to JS objects with type inference.",
+  "type": "module",
+  "main": "./CompactProfile.js",
+  "types": "./CompactProfile.d.ts",
+  "exports": {
+    ".": {
+      "types": "./CompactProfile.d.ts",
+      "default": "./CompactProfile.js"
+    }
+  },
+  "files": [
+    "CompactProfile.js",
+    "CompactProfile.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": ["config", "parser", "compact", "dsl"],
+  "author": "老橙子ACK <185005061+Deepl-ysp@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Deepl-ysp/compact-profile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Deepl-ysp/compact-profile/issues"
+  },
+  "homepage": "https://github.com/Deepl-ysp/compact-profile#readme"
+}
