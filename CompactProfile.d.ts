@@ -278,5 +278,5 @@ declare const CompactProfile: {
   readonly decode: typeof decode;
   readonly encodetags: typeof encodetags;
 };
-
+ 
 export default CompactProfile;
