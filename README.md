@@ -15,8 +15,8 @@ CompactProfile is a compact configuration description language. It parses `key=v
 
 三个核心能力 / Three core capabilities:
 
-- `encode` — 文本 → JS 对象（含求值）/ text → JS object (with evaluation)
-- `decode` — JS 对象 → 文本 / JS object → text
+- `parse` — 文本 → JS 对象（含求值）/ text → JS object (with evaluation)
+- `stringify` — JS 对象 → 文本 / JS object → text
 - `encodetags` — 模板字符串标签，把 JS 值直接嵌入文本 / template string tag, embeds JS values directly into text
 
 最外层不需要花括号 / The outermost braces are not required:
@@ -30,18 +30,18 @@ host='localhost',port=8080,debug=true
 ## 2. 快速开始 / Quick Start
 
 ```js
-import CompactProfile, { encode, decode, encodetags } from './cp.js';
+import CompactProfile, { parse, stringify, encodetags } from './cp.js';
 
 // 文本 → 对象 / text → object
-encode(`host='localhost',port=8080,debug=true`);
+parse(`host='localhost',port=8080,debug=true`);
 // { host: 'localhost', port: 8080, debug: true }
 
 // 对象 → 文本 / object → text
-decode({ host: 'localhost', port: 8080, debug: true });
+stringify({ host: 'localhost', port: 8080, debug: true });
 // "host='localhost',port=8080,debug=true"
 
 // 格式化输出 / formatted output
-decode({ host: 'localhost', port: 8080 }, { format: true });
+stringify({ host: 'localhost', port: 8080 }, { format: true });
 // host='localhost',
 // port=8080
 
@@ -55,7 +55,7 @@ encodetags`host='${host}',port=8080`;
 
 ## 3. API
 
-### 3.1 `encode(text, type?)`
+### 3.1 `parse(text, type?)`
 
 把文本解析并求值为 JS 对象。
 
@@ -67,14 +67,14 @@ Parses the text and evaluates it into a JS object.
 | `type` | `"Object" \| "Array"` | `"Object"` | 输出封装形式 / Output container form |
 
 ```js
-encode(`a=1,b=2`);
+parse(`a=1,b=2`);
 // { a: 1, b: 2 }
 
-encode(`a=1,b=2`, types.Array);
+parse(`a=1,b=2`, types.Array);
 // [{ a: 1 }, { b: 2 }]
 ```
 
-### 3.2 `decode(obj, options?)`
+### 3.2 `stringify(obj, options?)`
 
 把对象或数组序列化为文本。
 
@@ -91,16 +91,16 @@ Serializes an object or array into text.
 `options` can also be a `boolean`, equivalent to `{ format: boolean }`.
 
 ```js
-decode({ a: 1, b: { c: 2 } });
+stringify({ a: 1, b: { c: 2 } });
 // "a=1,b={c=2}"
 
-decode({ a: 1, b: { c: 2 } }, { format: true });
+stringify({ a: 1, b: { c: 2 } }, { format: true });
 // a=1,
 // b={
 //   c=2
 // }
 
-decode({ a: 1, b: { c: 2 } }, { format: true, indent: 4 });
+stringify({ a: 1, b: { c: 2 } }, { format: true, indent: 4 });
 // a=1,
 // b={
 //     c=2
@@ -169,20 +169,20 @@ types.FormulaAdd    // 'Formula Add'
 Single or double quotes both work.
 
 ```js
-encode(`title='Hello World'`);
+parse(`title='Hello World'`);
 // { title: 'Hello World' }
 
-encode(`title="Hello World"`);
+parse(`title="Hello World"`);
 // { title: 'Hello World' }
 ```
 
 两种引号内部可以互相包含 / The two quote styles can contain each other:
 
 ```js
-encode(`msg="It's fine"`);
+parse(`msg="It's fine"`);
 // { msg: "It's fine" }
 
-encode(`msg='Say "hi"'`);
+parse(`msg='Say "hi"'`);
 // { msg: 'Say "hi"' }
 ```
 
@@ -191,28 +191,28 @@ encode(`msg='Say "hi"'`);
 **整数 / Integers**
 
 ```js
-encode(`count=42,offset=-7`);
+parse(`count=42,offset=-7`);
 // { count: 42, offset: -7 }
 ```
 
 **浮点数 / Floats**
 
 ```js
-encode(`pi=3.14159,ratio=0.75`);
+parse(`pi=3.14159,ratio=0.75`);
 // { pi: 3.14159, ratio: 0.75 }
 ```
 
 **科学计数法 / Scientific notation**
 
 ```js
-encode(`distance=1.5e8,threshold=2.5e-3`);
+parse(`distance=1.5e8,threshold=2.5e-3`);
 // { distance: 150000000, threshold: 0.0025 }
 ```
 
 ### 4.3 布尔 / Booleans
 
 ```js
-encode(`enabled=true,archived=false`);
+parse(`enabled=true,archived=false`);
 // { enabled: true, archived: false }
 ```
 
@@ -223,7 +223,7 @@ encode(`enabled=true,archived=false`);
 Both are distinct literals.
 
 ```js
-encode(`middleName=null,deletedAt=undefined`);
+parse(`middleName=null,deletedAt=undefined`);
 // { middleName: null, deletedAt: undefined }
 ```
 
@@ -232,7 +232,7 @@ encode(`middleName=null,deletedAt=undefined`);
 Difference: `null` is preserved in JSON, while `undefined` is dropped during JSON serialization.
 
 ```js
-JSON.stringify(encode(`a=null,b=undefined`));
+JSON.stringify(parse(`a=null,b=undefined`));
 // '{"a":null}'
 ```
 
@@ -243,17 +243,17 @@ JSON.stringify(encode(`a=null,b=undefined`));
 Use an identifier directly to reference a previously defined value.
 
 ```js
-encode(`base=100,max=base*2`);
+parse(`base=100,max=base*2`);
 // { base: 100, max: 200 }
 
-encode(`host='localhost',url='http://'+host`);
+parse(`host='localhost',url='http://'+host`);
 // { host: 'localhost', url: 'http://localhost' }
 ```
 
 未定义的引用返回 `undefined` / An undefined reference returns `undefined`:
 
 ```js
-encode(`x=missing`);
+parse(`x=missing`);
 // { x: undefined }
 ```
 
@@ -264,10 +264,10 @@ encode(`x=missing`);
 Use `.` to access object properties; multiple levels are supported.
 
 ```js
-encode(`user={name='Alice',age=30},n=user.name`);
+parse(`user={name='Alice',age=30},n=user.name`);
 // { user: { name: 'Alice', age: 30 }, n: 'Alice' }
 
-encode(`a={b={c=1}},x=a.b.c`);
+parse(`a={b={c=1}},x=a.b.c`);
 // { a: { b: { c: 1 } }, x: 1 }
 ```
 
@@ -282,16 +282,16 @@ encode(`a={b={c=1}},x=a.b.c`);
 Square brackets, comma-separated elements, mixed types and nesting allowed.
 
 ```js
-encode(`tags=[1,2,3]`);
+parse(`tags=[1,2,3]`);
 // { tags: [1, 2, 3] }
 
-encode(`mixed=[1,'two',true,null]`);
+parse(`mixed=[1,'two',true,null]`);
 // { mixed: [1, 'two', true, null] }
 
-encode(`matrix=[[1,2],[3,4]]`);
+parse(`matrix=[[1,2],[3,4]]`);
 // { matrix: [[1, 2], [3, 4]] }
 
-encode(`empty=[]`);
+parse(`empty=[]`);
 // { empty: [] }
 ```
 
@@ -304,10 +304,10 @@ Curly braces. Fields inside can be written in two ways.
 **显式键 `key=value` / Explicit key `key=value`**
 
 ```js
-encode(`point={x=10,y=20}`);
+parse(`point={x=10,y=20}`);
 // { point: { x: 10, y: 20 } }
 
-encode(`user={name='Alice',age=30,active=true}`);
+parse(`user={name='Alice',age=30,active=true}`);
 // { user: { name: 'Alice', age: 30, active: true } }
 ```
 
@@ -318,10 +318,10 @@ encode(`user={name='Alice',age=30,active=true}`);
 The key is taken from **the last segment of the leftmost identifier chain** of the expression.
 
 ```js
-encode(`name='Alice',user={name}`);
+parse(`name='Alice',user={name}`);
 // { name: 'Alice', user: { name: 'Alice' } }
 
-encode(`point={x=1,y=2},copy={point.x,point.y}`);
+parse(`point={x=1,y=2},copy={point.x,point.y}`);
 // { point: { x: 1, y: 2 }, copy: { x: 1, y: 2 } }
 ```
 
@@ -330,17 +330,17 @@ encode(`point={x=1,y=2},copy={point.x,point.y}`);
 Literals (number, string, boolean, null, undefined) have no identifier, so they use placeholder keys `_0`, `_1` (by index):
 
 ```js
-encode(`values={1,2,3}`);
+parse(`values={1,2,3}`);
 // { values: { _0: 1, _1: 2, _2: 3 } }
 
-encode(`mixed={42,'hi',true,null}`);
+parse(`mixed={42,'hi',true,null}`);
 // { mixed: { _0: 42, _1: 'hi', _2: true, _3: null } }
 ```
 
 混合 / Mixed:
 
 ```js
-encode(`x=10,y=20,data={x,y,x+y,100}`);
+parse(`x=10,y=20,data={x,y,x+y,100}`);
 // { x: 10, y: 20, data: { x: 10, y: 20, _2: 30, _3: 100 } }
 ```
 
@@ -355,7 +355,7 @@ Note that `_2` appears because the index increments in field order, and `x+y` is
 Fields inside an object become visible in **definition order**, and lookup proceeds from inner to outer scope.
 
 ```js
-encode(`
+parse(`
   base=100,
   config={
     min=base,
@@ -370,7 +370,7 @@ encode(`
 When an inner field name shadows an outer one, later fields see the inner value:
 
 ```js
-encode(`
+parse(`
   value='outer',
   wrap={
     value='inner',
@@ -385,7 +385,7 @@ encode(`
 To reference the outer value from inside, place the reference before the shadowing:
 
 ```js
-encode(`
+parse(`
   value='outer',
   wrap={
     copy=value,
@@ -406,29 +406,29 @@ encode(`
 `+` `-` `*` `/` `%`, with the same precedence as JS.
 
 ```js
-encode(`sum=1+2+3`);
+parse(`sum=1+2+3`);
 // { sum: 6 }
 
-encode(`result=2+3*4`);
+parse(`result=2+3*4`);
 // { result: 14 }
 
-encode(`remainder=17%5`);
+parse(`remainder=17%5`);
 // { remainder: 2 }
 
-encode(`price=19.99,quantity=3,total=price*quantity`);
+parse(`price=19.99,quantity=3,total=price*quantity`);
 // { price: 19.99, quantity: 3, total: 59.97 }
 ```
 
 ### 6.2 一元负号 / Unary Minus
 
 ```js
-encode(`temp=-5`);
+parse(`temp=-5`);
 // { temp: -5 }
 
-encode(`expr=-(3+4)`);
+parse(`expr=-(3+4)`);
 // { expr: -7 }
 
-encode(`product=2*-3`);
+parse(`product=2*-3`);
 // { product: -6 }
 ```
 
@@ -439,13 +439,13 @@ encode(`product=2*-3`);
 `===` `!==` `==` `!=` `>` `<` `>=` `<=`, returning a boolean.
 
 ```js
-encode(`age=25,isAdult=age>=18`);
+parse(`age=25,isAdult=age>=18`);
 // { age: 25, isAdult: true }
 
-encode(`same=1===1,diff=1!==2`);
+parse(`same=1===1,diff=1!==2`);
 // { same: true, diff: true }
 
-encode(`loose=1=='1',strict=1==='1'`);
+parse(`loose=1=='1',strict=1==='1'`);
 // { loose: true, strict: false }
 ```
 
@@ -456,7 +456,7 @@ encode(`loose=1=='1',strict=1==='1'`);
 `<=>` returns `-1` / `0` / `1`.
 
 ```js
-encode(`a=1<=>2,b=5<=>5,c=9<=>2`);
+parse(`a=1<=>2,b=5<=>5,c=9<=>2`);
 // { a: -1, b: 0, c: 1 }
 ```
 
@@ -467,16 +467,16 @@ encode(`a=1<=>2,b=5<=>5,c=9<=>2`);
 `&&` `||`, short-circuit evaluated, returning the actual operand value.
 
 ```js
-encode(`a=true&&false`);
+parse(`a=true&&false`);
 // { a: false }
 
-encode(`b=false||true`);
+parse(`b=false||true`);
 // { b: true }
 
-encode(`x=0||'default'`);
+parse(`x=0||'default'`);
 // { x: 'default' }
 
-encode(`y='first'&&'second'`);
+parse(`y='first'&&'second'`);
 // { y: 'second' }
 ```
 
@@ -485,32 +485,32 @@ encode(`y='first'&&'second'`);
 `|` `^` `&` `<<` `>>` `>>>`
 
 ```js
-encode(`a=12&10`);      // 1100 & 1010 = 1000 = 8
+parse(`a=12&10`);      // 1100 & 1010 = 1000 = 8
 // { a: 8 }
 
-encode(`b=12|10`);      // 1100 | 1010 = 1110 = 14
+parse(`b=12|10`);      // 1100 | 1010 = 1110 = 14
 // { b: 14 }
 
-encode(`c=12^10`);      // 1100 ^ 1010 = 0110 = 6
+parse(`c=12^10`);      // 1100 ^ 1010 = 0110 = 6
 // { c: 6 }
 
-encode(`d=1<<4`);       // 16
+parse(`d=1<<4`);       // 16
 // { d: 16 }
 
-encode(`e=256>>2`);     // 64
+parse(`e=256>>2`);     // 64
 // { e: 64 }
 
-encode(`f=-1>>>28`);    // 15
+parse(`f=-1>>>28`);    // 15
 // { f: 15 }
 ```
 
 ### 6.7 三元 / Ternary
 
 ```js
-encode(`age=20,status=age>=18?'adult':'minor'`);
+parse(`age=20,status=age>=18?'adult':'minor'`);
 // { age: 20, status: 'adult' }
 
-encode(`score=45,grade=score>=60?'pass':'fail'`);
+parse(`score=45,grade=score>=60?'pass':'fail'`);
 // { score: 45, grade: 'fail' }
 ```
 
@@ -521,10 +521,10 @@ encode(`score=45,grade=score>=60?'pass':'fail'`);
 `if(condition) value elif(condition) value else value`; parentheses around conditions are optional.
 
 ```js
-encode(`score=85,grade=if(score>=90) 'A' elif(score>=80) 'B' elif(score>=70) 'C' else 'F'`);
+parse(`score=85,grade=if(score>=90) 'A' elif(score>=80) 'B' elif(score>=70) 'C' else 'F'`);
 // { score: 85, grade: 'B' }
 
-encode(`n=5,type=if n>0 'positive' else 'non-positive'`);
+parse(`n=5,type=if n>0 'positive' else 'non-positive'`);
 // { n: 5, type: 'positive' }
 ```
 
@@ -535,13 +535,13 @@ encode(`n=5,type=if n>0 'positive' else 'non-positive'`);
 Parentheses raise precedence.
 
 ```js
-encode(`a=(2+3)*4`);
+parse(`a=(2+3)*4`);
 // { a: 20 }
 
-encode(`b=2*(3+4)`);
+parse(`b=2*(3+4)`);
 // { b: 14 }
 
-encode(`c=((1+2)*3+4)*2`);
+parse(`c=((1+2)*3+4)*2`);
 // { c: 26 }
 ```
 
@@ -564,13 +564,13 @@ encode(`c=((1+2)*3+4)*2`);
 | `\xXX` | 十六进制字符 / hexadecimal character |
 
 ```js
-encode(`text='line1\\nline2'`);
+parse(`text='line1\\nline2'`);
 // { text: 'line1\nline2' }
 
-encode(`path='C:\\\\Users\\\\Alice'`);
+parse(`path='C:\\\\Users\\\\Alice'`);
 // { path: 'C:\\Users\\Alice' }
 
-encode(`char='\\u4e2d\\u6587'`);
+parse(`char='\\u4e2d\\u6587'`);
 // { char: '中文' }
 ```
 
@@ -581,7 +581,7 @@ encode(`char='\\u4e2d\\u6587'`);
 ### 8.1 应用配置 / Application Configuration
 
 ```js
-const config = encode(`
+const config = parse(`
   appName='MyApp',
   version='2.1.0',
   server={
@@ -629,7 +629,7 @@ const config = encode(`
 ### 8.2 电商订单计算 / E-commerce Order Calculation
 
 ```js
-const order = encode(`
+const order = parse(`
   unitPrice=29.99,
   quantity=3,
   subtotal=unitPrice*quantity,
@@ -661,7 +661,7 @@ const order = encode(`
 ### 8.3 用户权限判定 / User Permission Check
 
 ```js
-const user = encode(`
+const user = parse(`
   user={id=1001,name='Alice',role='admin',level=8},
   minLevel=5,
   canEdit=user.role==='admin'&&user.level>=minLevel,
@@ -687,7 +687,7 @@ const user = encode(`
 ### 8.4 位掩码权限 / Bitmask Permissions
 
 ```js
-const flags = encode(`
+const flags = parse(`
   READ=1,
   WRITE=2,
   EXEC=4,
@@ -748,17 +748,17 @@ const original = {
   bio: null
 };
 
-const text = decode(original);
+const text = stringify(original);
 // "name='Alice',age=30,address={city='Beijing',zip='100000'},tags=['admin','developer'],active=true,bio=null"
 
-const restored = encode(text);
+const restored = parse(text);
 // 与 original 深度相等 / deeply equal to original
 ```
 
 格式化输出 / Formatted output:
 
 ```js
-decode(original, { format: true });
+stringify(original, { format: true });
 // name='Alice',
 // age=30,
 // address={
@@ -801,7 +801,7 @@ Same precedence is **left-associative**.
 不报错，返回 `undefined` / No error is thrown; returns `undefined`:
 
 ```js
-encode(`x=missing`);
+parse(`x=missing`);
 // { x: undefined }
 ```
 
@@ -812,7 +812,7 @@ encode(`x=missing`);
 `om=pm` is a **value snapshot**, not a reference alias:
 
 ```js
-encode(`pm={x=1},cc={om=pm},pm2={x=2}`);
+parse(`pm={x=1},cc={om=pm},pm2={x=2}`);
 // cc.om 是 { x: 1 }，之后修改 pm 不会影响它
 // cc.om is { x: 1 }; later modifications to pm do not affect it
 ```
@@ -823,10 +823,10 @@ encode(`pm={x=1},cc={om=pm},pm2={x=2}`);
 - **字面量** → 走占位键 `_0`、`_1`（按字段下标）/ **Literal** → use placeholder keys `_0`, `_1` (by field index)
 
 ```js
-encode(`list={1,2,3}`);
+parse(`list={1,2,3}`);
 // { list: { _0: 1, _1: 2, _2: 3 } }
 
-encode(`user={name='Alice'},pair={user.name}`);
+parse(`user={name='Alice'},pair={user.name}`);
 // { user: {...}, pair: { name: 'Alice' } }
 ```
 
@@ -835,7 +835,7 @@ encode(`user={name='Alice'},pair={user.name}`);
 When key names repeat within the same object, the later one overwrites the earlier one:
 
 ```js
-encode(`user={name='Alice'},pair={user.name,user.name}`);
+parse(`user={name='Alice'},pair={user.name,user.name}`);
 // { user: {...}, pair: { name: 'Alice' } }
 ```
 
@@ -846,14 +846,14 @@ encode(`user={name='Alice'},pair={user.name,user.name}`);
 Top-level fields are evaluated in definition order; later fields can reference earlier ones.
 
 ```js
-encode(`a=1,b=a+1,c=b+1`);
+parse(`a=1,b=a+1,c=b+1`);
 // { a: 1, b: 2, c: 3 }
 ```
 
 反过来拿不到值 / Reversed order yields no value:
 
 ```js
-encode(`b=a+1,a=1`);
+parse(`b=a+1,a=1`);
 // { b: NaN, a: 1 }
 ```
 
@@ -868,7 +868,7 @@ encodetags`n='${name}'`;  // { n: 'Alice' }    —— 正确 / correct
 ### 10.6 空容器 / Empty Containers
 
 ```js
-encode(`a={},b=[]`);
+parse(`a={},b=[]`);
 // { a: {}, b: [] }
 ```
 
@@ -879,25 +879,25 @@ encode(`a={},b=[]`);
 `true` `false` `null` `undefined` must be lowercase:
 
 ```js
-encode(`a=True`);
+parse(`a=True`);
 // { a: undefined } —— True 被当作标识符 / True is treated as an identifier
 ```
 
-### 10.8 `decode` 的数组输入 / Array Input for `decode`
+### 10.8 `stringify` 的数组输入 / Array Input for `stringify`
 
-`decode` 接受数组，展开其中每个对象的键值对：
+`stringify` 接受数组，展开其中每个对象的键值对：
 
-`decode` accepts an array and flattens the key-value pairs of each object in it:
+`stringify` accepts an array and flattens the key-value pairs of each object in it:
 
 ```js
-decode([{ a: 1 }, { b: 2 }]);
+stringify([{ a: 1 }, { b: 2 }]);
 // "a=1,b=2"
 ```
 
 数组中的非对象元素被忽略 / Non-object elements in the array are ignored:
 
 ```js
-decode([1, 2, 'x']);
+stringify([1, 2, 'x']);
 // ""
 ```
 
